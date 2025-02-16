@@ -322,7 +322,7 @@ func Hydrate(val any, raw string) error {
 		}
 
 	default:
-		return wrap(ErrUnsupportedType)
+		return wrap(ErrTypeUnsupported)
 	}
 
 	return nil
