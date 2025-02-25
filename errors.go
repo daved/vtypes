@@ -1,4 +1,4 @@
-package vtype
+package vtypes
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ func NewError(child error) *Error {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("vtype: %v", e.child)
+	return fmt.Sprintf("vtypes: %v", e.child)
 }
 
 func (e *Error) Unwrap() error {

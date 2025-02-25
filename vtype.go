@@ -1,5 +1,5 @@
-// Package vtype provides value type handling helpers and types.
-package vtype
+// Package vtypes provides value type handling helpers and types.
+package vtypes
 
 import (
 	"bytes"
@@ -191,7 +191,7 @@ func ConvertCompatible(val any) any {
 //   - builtin: *string, *bool, error, *int, *int8, *int16, *int32, *int64,
 //     *uint, *uint8, *uint16, *uint32, *uint64, *float32, *float64
 //   - stdlib: *[time.Duration], [flag.Value]
-//   - vtype: [TextMarshalUnmarshaler], [OnSetter], [StringSetter],
+//   - vtypes: [TextMarshalUnmarshaler], [OnSetter], [StringSetter],
 //     [OnSetFunc], [OnSetBoolFunc]
 func Hydrate(val any, raw string) error {
 	wrap := func(err error) error {

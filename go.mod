@@ -1,3 +1,3 @@
-module github.com/daved/vtype
+module github.com/daved/vtypes
 
 go 1.18
