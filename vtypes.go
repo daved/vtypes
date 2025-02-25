@@ -2,164 +2,11 @@
 package vtypes
 
 import (
-	"bytes"
-	"encoding"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
-
-// TextMarshalUnmarshaler descibes types that are able to be marshaled to and
-// unmarshaled from text.
-type TextMarshalUnmarshaler interface {
-	encoding.TextUnmarshaler
-	encoding.TextMarshaler
-}
-
-// OnSetter describes types that will have a callback (OnSet) run when
-// hydrated. The IsBool method conveys type information used to determine the
-// default text and can be used to inform external handlers.
-type OnSetter interface {
-	OnSet(val string) error
-	IsBool() bool
-}
-
-// StringSetter describes types that are set by and expressed as a string value.
-type StringSetter interface {
-	Set(val string) error
-	fmt.Stringer
-}
-
-// OnSetFunc is an implementation of [OnSetter].
-type OnSetFunc func(string) error
-
-// OnSet calls the receiver function.
-func (f OnSetFunc) OnSet(val string) error {
-	return f(val)
-}
-
-// IsBool indicates whether the receiver function is intended to handle bool
-// values.
-func (f OnSetFunc) IsBool() bool { return false }
-
-// OnSetBoolFunc is an implementation of [OnSetter].
-type OnSetBoolFunc func(bool) error
-
-// OnSet calls the receiver function, first parsing the string value as a bool
-// type.
-func (f OnSetBoolFunc) OnSet(s string) error {
-	b, err := strconv.ParseBool(s)
-	if err != nil {
-		return err
-	}
-	return f(b)
-}
-
-// IsBool indicates whether the receiver function is intended to handle bool
-// values.
-func (f OnSetBoolFunc) IsBool() bool { return true }
-
-// Slice is an implementation of TextMarshalUnmarshaler that wraps a pointer to
-// a slice of any type supported by [Hydrate]. Behavior can be configured to
-// treat each UnmarshalText call as a set of values. The first call to
-// UnmarshalText will clear the underlying slice, and subsequent calls are
-// accumulative unless otherwise configured.
-type Slice struct {
-	ptrToSlice any
-	started    bool
-
-	TypeName  string
-	SplitEach bool
-	Separator string
-	NonAccum  bool
-}
-
-// MakeSlice returns an instance of Slice.
-func MakeSlice(ptrToSlice any) Slice {
-	return Slice{
-		ptrToSlice: ptrToSlice,
-		Separator:  ",",
-	}
-}
-
-// UnmarshalText implements [encoding.TextUnmarshaler].
-func (s *Slice) UnmarshalText(text []byte) error {
-	vo := reflect.ValueOf(s.ptrToSlice)
-	isPtr := vo.Kind() == reflect.Pointer
-	if isPtr {
-		vo = vo.Elem()
-	}
-	if !isPtr || vo.Kind() != reflect.Slice {
-		return errors.New("slice: contained value is not a pointer to a slice")
-	}
-
-	if !s.started || s.NonAccum {
-		slice := reflect.MakeSlice(vo.Type(), 0, 0)
-		reflect.ValueOf(s.ptrToSlice).Elem().Set(slice)
-	}
-	s.started = true
-
-	valType := vo.Type().Elem()
-
-	sep := s.Separator
-	if !s.SplitEach {
-		sep = "<><>"
-	}
-
-	for _, chunk := range bytes.Split(text, []byte(sep)) {
-		item := reflect.New(valType)
-		if err := Hydrate(item.Interface(), string(chunk)); err != nil {
-			return fmt.Errorf("slice: unmarshal text: %w", err)
-		}
-
-		slice := reflect.Append(vo, item.Elem())
-		reflect.ValueOf(s.ptrToSlice).Elem().Set(slice)
-	}
-
-	return nil
-}
-
-// MarshalText implements [encoding.TextMarshaler].
-func (s *Slice) MarshalText() ([]byte, error) {
-	vo := reflect.ValueOf(s.ptrToSlice)
-	isPtr := vo.Kind() == reflect.Pointer
-	if isPtr {
-		vo = vo.Elem()
-	}
-	if !isPtr || vo.Kind() != reflect.Slice {
-		return nil, errors.New("slice: contained value is not a pointer to a slice")
-	}
-
-	out := make([]string, vo.Len())
-	for i := 0; i < vo.Len(); i++ {
-		out[i] = fmt.Sprint(vo.Index(i).Interface())
-	}
-	return []byte(strings.Join(out, s.Separator)), nil
-}
-
-// ValueTypeName returns the name of the underlying slice element type, adding
-// information if unmarshaling is configured to handle a set of values.
-func (s *Slice) ValueTypeName() string {
-	rv := reflect.ValueOf(s.ptrToSlice)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-	}
-	name := rv.Type().Elem().Name()
-
-	if s.SplitEach {
-		name += fmt.Sprintf("(multisep:%s)", s.Separator)
-	}
-
-	return name
-}
-
-// IsBool indicates whether the underlying slice element type is bool.
-func (s *Slice) IsBool() bool {
-	return reflect.ValueOf(s.ptrToSlice).Elem().Type().Elem().Kind() == reflect.Bool
-}
 
 // ConvertCompatible wraps compatible types.
 func ConvertCompatible(val any) any {
@@ -325,10 +172,6 @@ func Hydrate(val any, raw string) error {
 	return nil
 }
 
-type ValueTypeNamer interface {
-	ValueTypeName() string
-}
-
 // ValueTypeName returns a "best effort" text representation of the value's
 // type name. Explicit values are communicated by types implementing
 // [ValueTypeNamer].
@@ -356,10 +199,6 @@ func ValueTypeName(val any) string {
 		}
 		return rv.Type().Name()
 	}
-}
-
-type DefaultValueTexter interface {
-	DefaultValueText() string
 }
 
 // DefaultValueText returns a "best effort" text representation of the value.
