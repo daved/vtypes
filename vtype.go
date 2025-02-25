@@ -1,3 +1,4 @@
+// Package vtype provides value type handling helpers and types.
 package vtype
 
 import (
@@ -158,10 +159,6 @@ func (s *Slice) ValueTypeName() string {
 // IsBool indicates whether the underlying slice element type is bool.
 func (s *Slice) IsBool() bool {
 	return reflect.ValueOf(s.ptrToSlice).Elem().Type().Elem().Kind() == reflect.Bool
-}
-
-type Map struct {
-	vals *map[any]any
 }
 
 // ConvertCompatible wraps compatible types.
