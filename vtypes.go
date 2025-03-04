@@ -45,7 +45,12 @@ func Hydrate(val any, raw string) error {
 		return NewError(NewHydrateError(err, val))
 	}
 
-	switch v := val.(type) {
+	preppedVal, err := prepRef(val)
+	if err != nil {
+		return wrap(err)
+	}
+
+	switch v := preppedVal.(type) {
 	case error:
 		return wrap(v)
 
@@ -170,6 +175,26 @@ func Hydrate(val any, raw string) error {
 	}
 
 	return nil
+}
+
+func prepRef(val any) (any, error) {
+	vo := reflect.ValueOf(val)
+	if vo.Kind() != reflect.Pointer {
+		return nil, fmt.Errorf("val must be a pointer")
+	}
+	if vo.IsNil() {
+		return nil, fmt.Errorf("val must not be nil")
+	}
+
+	el := vo.Elem()
+	if el.Kind() != reflect.Pointer {
+		return val, nil
+	}
+	if el.IsNil() {
+		el.Set(reflect.New(el.Type().Elem()))
+	}
+
+	return el.Interface(), nil
 }
 
 // ValueTypeName returns a "best effort" text representation of the value's
