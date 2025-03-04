@@ -180,10 +180,10 @@ func Hydrate(val any, raw string) error {
 func prepRef(val any) (any, error) {
 	vo := reflect.ValueOf(val)
 	if vo.Kind() != reflect.Pointer {
-		return nil, fmt.Errorf("val must be a pointer")
+		return nil, ErrTypeUnsupported
 	}
 	if vo.IsNil() {
-		return nil, fmt.Errorf("val must not be nil")
+		return nil, ErrValueUnsupported
 	}
 
 	el := vo.Elem()

@@ -47,4 +47,7 @@ func (e *HydrateError) Is(err error) bool {
 	return reflect.TypeOf(e) == reflect.TypeOf(err)
 }
 
-var ErrTypeUnsupported = errors.New("type unsupported")
+var (
+	ErrTypeUnsupported  = errors.New("type unsupported")
+	ErrValueUnsupported = errors.New("value unsupported")
+)
