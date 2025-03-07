@@ -19,7 +19,7 @@ func ConvertCompatible(val any) any {
 
 	default:
 		vo := reflect.ValueOf(val)
-		if vo.Kind() == reflect.Ptr {
+		if vo.Kind() == reflect.Pointer {
 			vo = vo.Elem()
 		}
 
@@ -214,15 +214,19 @@ func ValueTypeName(val any) string {
 	case TextMarshalUnmarshaler, StringSetter:
 		return "value"
 
-	case error:
+	case nil, error:
 		return ""
 
 	default:
-		rv := reflect.ValueOf(val)
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
+		t := reflect.TypeOf(val)
+		if t == nil {
+			return ""
 		}
-		return rv.Type().Name()
+
+		for t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		return t.Name()
 	}
 }
 
@@ -252,7 +256,10 @@ func DefaultValueText(val any) string {
 		}
 
 		vo := reflect.ValueOf(val)
-		if vo.Kind() == reflect.Ptr {
+		for vo.Kind() == reflect.Pointer {
+			if vo.IsNil() {
+				return ""
+			}
 			vo = vo.Elem()
 		}
 		return fmt.Sprint(vo)
