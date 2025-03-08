@@ -71,3 +71,101 @@ func TestSurfaceHydrate(t *testing.T) {
 func ptr[T any](v T) *T {
 	return &v
 }
+
+func TestConvertCompatibleWithDoublePointerNilSlice(t *testing.T) {
+	var slice *[]int // nil
+	p1 := &slice     // **[]int where *[]int is nil
+
+	result := vtypes.ConvertCompatible(p1)
+	rv := reflect.ValueOf(result)
+	if rv.Kind() != reflect.Pointer {
+		t.Errorf("Expected pointer to Slice, got %v", rv.Kind())
+	}
+	rv = rv.Elem()
+	if rv.Type() != reflect.TypeOf(vtypes.Slice{}) {
+		t.Errorf("Expected Slice type, got %v", rv.Type())
+	}
+
+	sliceVal := rv.Interface().(vtypes.Slice)
+	slicePtr := sliceVal.Value().(**[]int)
+	if slicePtr == nil {
+		t.Errorf("Expected non-nil **[]int pointer, got nil")
+	}
+	if *slicePtr != nil {
+		t.Errorf("Expected nil *[]int pointer, got %v", *slicePtr)
+	}
+
+	err := sliceVal.UnmarshalText([]byte(""))
+	if err != nil {
+		t.Errorf("UnmarshalText error: %v", err)
+	}
+	slicePtr = sliceVal.Value().(**[]int)
+	if *slicePtr != nil {
+		t.Errorf("Expected nil *[]int pointer after empty unmarshal, got %v", *slicePtr)
+	}
+
+	err = sliceVal.UnmarshalText([]byte("1,2,3"))
+	if err != nil {
+		t.Errorf("UnmarshalText error: %v", err)
+	}
+	slicePtr = sliceVal.Value().(**[]int)
+	if slicePtr == nil {
+		t.Errorf("Expected non-nil **[]int pointer after unmarshal, got nil")
+	}
+	if *slicePtr == nil {
+		t.Errorf("Expected non-nil *[]int pointer after unmarshal, got nil")
+	}
+	if !reflect.DeepEqual(**slicePtr, []int{1, 2, 3}) {
+		t.Errorf("Expected slice values [1, 2, 3], got %v", **slicePtr)
+	}
+}
+
+func TestConvertCompatibleWithTriplePointerSlice(t *testing.T) {
+	slice := []int{1, 2, 3}
+	p1 := &slice
+	p2 := &p1
+	p3 := &p2
+
+	result := vtypes.ConvertCompatible(p3)
+	rv := reflect.ValueOf(result)
+	if rv.Kind() != reflect.Pointer {
+		t.Errorf("Expected pointer to Slice, got %v", rv.Kind())
+	}
+	rv = rv.Elem()
+	if rv.Type() != reflect.TypeOf(vtypes.Slice{}) {
+		t.Errorf("Expected Slice type, got %v", rv.Type())
+	}
+
+	sliceVal := rv.Interface().(vtypes.Slice)
+	slicePtr := sliceVal.Value().(***[]int)
+	if slicePtr == nil {
+		t.Errorf("Expected non-nil slice pointer, got nil")
+	}
+	if !reflect.DeepEqual(***slicePtr, []int{1, 2, 3}) {
+		t.Errorf("Expected slice values [1, 2, 3], got %v", ***slicePtr)
+	}
+}
+
+func TestConvertCompatibleWithSinglePointerSlice(t *testing.T) {
+	slice := []int{1, 2, 3}
+	p1 := &slice
+
+	result := vtypes.ConvertCompatible(p1)
+	rv := reflect.ValueOf(result)
+	if rv.Kind() != reflect.Pointer {
+		t.Errorf("Expected pointer to Slice, got %v", rv.Kind())
+	}
+	rv = rv.Elem()
+	if rv.Type() != reflect.TypeOf(vtypes.Slice{}) {
+		t.Errorf("Expected Slice type, got %v", rv.Type())
+	}
+
+	sliceVal := rv.Interface().(vtypes.Slice)
+	slicePtr := sliceVal.Value().(*[]int)
+	if slicePtr == nil {
+		t.Errorf("Expected non-nil slice pointer, got nil")
+	}
+	if !reflect.DeepEqual(*slicePtr, []int{1, 2, 3}) {
+		t.Errorf("Expected slice values [1, 2, 3], got %v", *slicePtr)
+	}
+}

@@ -10,26 +10,27 @@ import (
 
 // ConvertCompatible wraps compatible types.
 func ConvertCompatible(val any) any {
+	// Handle function types first
 	switch v := val.(type) {
 	case func(string) error:
 		return OnSetFunc(v)
-
 	case func(bool) error:
 		return OnSetBoolFunc(v)
-
-	default:
-		vo := reflect.ValueOf(val)
-		if vo.Kind() == reflect.Pointer {
-			vo = vo.Elem()
-		}
-
-		switch vo.Kind() {
-		case reflect.Slice:
-			s := MakeSlice(val)
-			return &s
-		}
 	}
 
+	// Get the type of val
+	t := reflect.TypeOf(val)
+	// Check if it’s a slice type (including pointers to slices)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	if t != nil && t.Kind() == reflect.Slice {
+		s := MakeSlice(val)
+		return &s
+	}
+
+	// Return original value for non-slice types
 	return val
 }
 
